@@ -38,6 +38,7 @@ internal class ReceiveMessages(
             .flatMapLatest { nonceSigners ->
                 pdcClientBuilder().use {
                     try {
+                        logger.info("About to collect parcels")
                         collectParcels(it, nonceSigners)
                     } catch (exp: ServerException) {
                         throw ReceiveMessageException("Server error", exp)
@@ -68,15 +69,19 @@ internal class ReceiveMessages(
         pdcClient
             .collectParcels(nonceSigners, StreamingMode.CloseUponCompletion)
             .mapNotNull { parcelCollection ->
+                logger.info("Got parcel collection")
                 val parcel = try {
                     parcelCollection.deserializeAndValidateParcel()
                 } catch (exp: RAMFException) {
                     parcelCollection.disregard("Malformed incoming parcel", exp)
+                    logger.info("Parcel was malformed")
                     return@mapNotNull null
                 } catch (exp: InvalidMessageException) {
                     parcelCollection.disregard("Invalid incoming parcel", exp)
+                    logger.info("Parcel was invalid")
                     return@mapNotNull null
                 }
+                logger.info("Parcel was valid")
                 try {
                     IncomingMessage.build(parcel) { parcelCollection.ack() }
                 } catch (exp: UnknownFirstPartyEndpointException) {
