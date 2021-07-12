@@ -170,6 +170,7 @@ internal constructor(
     internal suspend fun checkForNewMessages() {
         withContext(coroutineContext) {
             val wasAlreadyBound = gwServiceInteractor != null
+            logger.info("checkForNewMessages. wasAlreadyBound? $wasAlreadyBound")
             if (!wasAlreadyBound) {
                 try {
                     bind()
